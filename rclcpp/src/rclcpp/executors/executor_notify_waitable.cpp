@@ -46,20 +46,18 @@ void
 ExecutorNotifyWaitable::add_to_wait_set(rcl_wait_set_t * wait_set)
 {
   std::lock_guard<std::mutex> lock(guard_condition_mutex_);
-
   for (auto weak_guard_condition : this->notify_guard_conditions_) {
     auto guard_condition = weak_guard_condition.lock();
-    if (guard_condition) {
-      auto rcl_guard_condition = &guard_condition->get_rcl_guard_condition();
+    if (!guard_condition) {continue;}
 
-      rcl_ret_t ret = rcl_wait_set_add_guard_condition(
-        wait_set,
-        rcl_guard_condition, NULL);
+    rcl_guard_condition_t * cond = &guard_condition->get_rcl_guard_condition();
 
-      if (RCL_RET_OK != ret) {
-        rclcpp::exceptions::throw_from_rcl_error(
-          ret, "failed to add guard condition to wait set");
-      }
+    rcl_ret_t ret = rcl_wait_set_add_guard_condition(
+      wait_set, cond, NULL);
+
+    if (RCL_RET_OK != ret) {
+      rclcpp::exceptions::throw_from_rcl_error(
+        ret, "failed to add guard condition to wait set");
     }
   }
 }

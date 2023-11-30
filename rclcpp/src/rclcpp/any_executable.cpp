@@ -16,13 +16,16 @@
 
 using rclcpp::AnyExecutable;
 
+RCLCPP_PUBLIC
 AnyExecutable::AnyExecutable()
 : subscription(nullptr),
   timer(nullptr),
   service(nullptr),
   client(nullptr),
+  waitable(nullptr),
   callback_group(nullptr),
-  node_base(nullptr)
+  node_base(nullptr),
+  data(nullptr)
 {}
 
 AnyExecutable::~AnyExecutable()

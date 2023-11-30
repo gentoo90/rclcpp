@@ -204,15 +204,19 @@ public:
   void
   storage_rebuild_rcl_wait_set(const ArrayOfExtraGuardConditions & extra_guard_conditions)
   {
+    this->storage_acquire_ownerships();
+
     this->storage_rebuild_rcl_wait_set_with_sets(
-      subscriptions_,
-      guard_conditions_,
+      shared_subscriptions_,
+      shared_guard_conditions_,
       extra_guard_conditions,
-      timers_,
-      clients_,
-      services_,
-      waitables_
+      shared_timers_,
+      shared_clients_,
+      shared_services_,
+      shared_waitables_
     );
+
+    this->storage_release_ownerships();
   }
 
   template<class EntityT, class SequenceOfEntitiesT>
@@ -382,6 +386,8 @@ public:
         return weak_ptr.expired();
       };
     // remove guard conditions which have been deleted
+    subscriptions_.erase(
+      std::remove_if(subscriptions_.begin(), subscriptions_.end(), p), subscriptions_.end());
     guard_conditions_.erase(
       std::remove_if(guard_conditions_.begin(), guard_conditions_.end(), p),
       guard_conditions_.end());
@@ -407,6 +413,7 @@ public:
         }
       };
     // Lock all the weak pointers and hold them until released.
+    lock_all(subscriptions_, shared_subscriptions_);
     lock_all(guard_conditions_, shared_guard_conditions_);
     lock_all(timers_, shared_timers_);
     lock_all(clients_, shared_clients_);
@@ -438,6 +445,7 @@ public:
           shared_ptr.reset();
         }
       };
+    reset_all(shared_subscriptions_);
     reset_all(shared_guard_conditions_);
     reset_all(shared_timers_);
     reset_all(shared_clients_);

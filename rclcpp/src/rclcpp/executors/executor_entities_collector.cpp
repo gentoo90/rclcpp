@@ -105,7 +105,8 @@ void
 ExecutorEntitiesCollector::remove_node(
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr)
 {
-  if (!node_ptr->get_associated_with_executor_atomic().load()) {
+  std::atomic_bool & has_executor = node_ptr->get_associated_with_executor_atomic();
+  if (!has_executor.exchange(false)) {
     throw std::runtime_error(
             std::string("Node '") + node_ptr->get_fully_qualified_name() +
             "' needs to be associated with an executor.");
@@ -161,7 +162,6 @@ ExecutorEntitiesCollector::remove_callback_group(rclcpp::CallbackGroup::SharedPt
     throw std::runtime_error("Node must not be deleted before its callback group(s).");
   }
   */
-
   auto weak_group_ptr = rclcpp::CallbackGroup::WeakPtr(group_ptr);
   std::lock_guard<std::mutex> lock(mutex_);
   bool associated = manually_added_groups_.count(group_ptr) != 0;
@@ -314,7 +314,11 @@ ExecutorEntitiesCollector::process_queues()
     if (node_it != weak_nodes_.end()) {
       remove_weak_node(node_it);
     } else {
-      throw std::runtime_error("Node needs to be associated with this executor.");
+      // The node may have been destroyed and removed from the colletion before
+      // we processed the queues.  Don't throw if the pointer is already expired.
+      if (!weak_node_ptr.expired()) {
+        throw std::runtime_error("Node needs to be associated with this executor.");
+      }
     }
 
     auto node_ptr = weak_node_ptr.lock();
