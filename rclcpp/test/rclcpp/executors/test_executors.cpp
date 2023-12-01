@@ -664,8 +664,7 @@ public:
   rclcpp::shutdown();
 }
 
-
-TYPED_TEST(TestExecutorsOnlyNode, missing_event)
+TYPED_TEST(TestExecutors, missing_event)
 {
   using ExecutorType = TypeParam;
   ExecutorType executor;
